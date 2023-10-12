@@ -17,6 +17,15 @@ float velo = 0;
 long int time = 0;
 const int pinoInterrupcao = 2;
 
+// Variáveis Sensor Hall
+const int ledVerde = 9;
+const int ledAmarelo = 8;
+const int ledVermelho = 10;
+const int sensorPin = A1; // Pino de entrada analógica
+const int baixoLimite = 510; // Limite inferior para o nível baixo
+const int medioLimite = 495; // Limite inferior para o nível médio
+int valorLido = 0;
+
 uint8_t LT[8]  = {0xF, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F};
 uint8_t UB[8]  = {0x1F, 0x1F, 0x1F, 0x0, 0x0, 0x0, 0x0, 0x0};
 uint8_t RT[8] = { 0x1E, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F};
@@ -26,7 +35,7 @@ uint8_t LR[8] = {0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1E};
 uint8_t UMB[8] = {0x1F, 0x1F, 0x1F, 0x0, 0x0, 0x0, 0x1F, 0x1F};
 uint8_t LMB[8] = {0x1F, 0x0, 0x0, 0x0, 0x0, 0x1F, 0x1F, 0x1F};
   
-LiquidCrystal_I2C lcd(0x27,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
+LiquidCrystal_I2C lcd(0x27,12,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
 
 
 
@@ -174,6 +183,11 @@ void velocidade() {
 
 void setup()
 {
+  // Setup Sensor hall
+  pinMode(ledVerde, OUTPUT);
+  pinMode(ledAmarelo, OUTPUT);
+  pinMode(ledVermelho, OUTPUT);
+  
   //setup lcd
   lcd.init();                      // initialize the lcd 
   lcd.backlight();
@@ -192,6 +206,9 @@ void setup()
   lcd.print("iniciando...");
   lcd.setCursor(0, 1);
   lcd.print("Boa sorte!");
+  digitalWrite(ledVerde, HIGH);
+  digitalWrite(ledAmarelo, HIGH);
+  digitalWrite(ledVermelho, HIGH);
   delay(3000);
   lcd.clear();
 
@@ -206,11 +223,34 @@ void setup()
 int contador = 0;
 void loop()
 {
+
   if (millis() - time > 3000) {
     velo = 0;
   }
   Serial.println(velo);
   mostraNumero(velo);
-  delay(1000);
   Serial.println(digitalRead(pinoInterrupcao));
+  delay(1000);
+  
+  // Código Sensor hall
+  valorLido = analogRead(sensorPin); // Lê o valor analógico
+  
+  if (valorLido > baixoLimite) {
+    digitalWrite(ledVerde, LOW);
+    digitalWrite(ledAmarelo, LOW);
+    digitalWrite(ledVermelho, HIGH);
+    Serial.println("Nível Baixo: " + String(valorLido));
+  }
+  else if (valorLido > medioLimite) {
+    digitalWrite(ledVerde, LOW);
+    digitalWrite(ledAmarelo, HIGH);
+    digitalWrite(ledVermelho, HIGH);
+    Serial.println("Nível Médio: " + String(valorLido));
+  }
+  else {
+    digitalWrite(ledVerde, HIGH);
+    digitalWrite(ledAmarelo, HIGH);
+    digitalWrite(ledVermelho, HIGH);
+    Serial.println("Nível Alto: " + String(valorLido));
+  }
 }
