@@ -10,21 +10,33 @@
 #define printByte(args)  print(args,BYTE);
 #endif
 
-int cursor=5;//posição do cursor
-int x=cursor;
+
 //variaves velocimetro
 float velo = 0;
 long int time = 0;
 const int pinoInterrupcao = 2;
 
 // Variáveis Sensor Hall
-const int ledVerde = 9;
-const int ledAmarelo = 8;
-const int ledVermelho = 10;
 const int sensorPin = A1; // Pino de entrada analógica
 const int baixoLimite = 510; // Limite inferior para o nível baixo
 const int medioLimite = 495; // Limite inferior para o nível médio
 int valorLido = 0;
+
+// Variáveis combustivel/rpm
+const int switchPin = 3; // Pino do interruptor
+int contadorPulso = 0;
+int contadorRotacao = 0;
+
+/*//parte do rpm
+ double lastTime = 0; // Último tempo de leitura
+float rpm = 0; // RPM calculadas
+double elapsedTime=0;
+*/
+
+// Variáveis do painel
+const int ledVerde = 9;
+const int ledAmarelo = 8;
+const int ledVermelho = 10;
 
 uint8_t LT[8]  = {0xF, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F};
 uint8_t UB[8]  = {0x1F, 0x1F, 0x1F, 0x0, 0x0, 0x0, 0x0, 0x0};
@@ -34,6 +46,9 @@ uint8_t LB[8]  = {0x0, 0x0, 0x0, 0x0, 0x0, 0x1F, 0x1F, 0x1F};
 uint8_t LR[8] = {0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1E};
 uint8_t UMB[8] = {0x1F, 0x1F, 0x1F, 0x0, 0x0, 0x0, 0x1F, 0x1F};
 uint8_t LMB[8] = {0x1F, 0x0, 0x0, 0x0, 0x0, 0x1F, 0x1F, 0x1F};
+
+int cursor=5;//posição do cursor
+int x=cursor;
   
 LiquidCrystal_I2C lcd(0x27,12,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
 
@@ -176,14 +191,18 @@ void mostraNumero(int numero) //Mostra o numero na posicao definida por "X"
 //função acelerometro
 void velocidade() {
   velo = 1.7278 / (millis() - time); // velocidade em m/ms
-    velo = velo * 3600;
-    time = millis();
+  velo = velo * 3600;
+  time = millis();
+}
+
+void pulso(){
+ contadorPulso++;
 }
 
 
 void setup()
 {
-  // Setup Sensor hall
+  // Setup do painel
   pinMode(ledVerde, OUTPUT);
   pinMode(ledAmarelo, OUTPUT);
   pinMode(ledVermelho, OUTPUT);
@@ -217,10 +236,13 @@ void setup()
   Serial.begin(9600);
   pinMode(pinoInterrupcao, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(pinoInterrupcao), velocidade, FALLING);
+
+  // setup snssor de combustivel/rpm
+  pinMode(switchPin, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(switchPin), pulso, RISING);
   
 }
 
-int contador = 0;
 void loop()
 {
 
@@ -232,25 +254,22 @@ void loop()
   Serial.println(digitalRead(pinoInterrupcao));
   delay(1000);
   
-  // Código Sensor hall
-  valorLido = analogRead(sensorPin); // Lê o valor analógico
-  
-  if (valorLido > baixoLimite) {
+  // Código Sensor de combustivel/rpm
+  contadorRotacao = contadorPulso*4;
+    
+  if (contadorRotacao > 186210) {
     digitalWrite(ledVerde, LOW);
     digitalWrite(ledAmarelo, LOW);
     digitalWrite(ledVermelho, HIGH);
-    Serial.println("Nível Baixo: " + String(valorLido));
   }
-  else if (valorLido > medioLimite) {
+  else if (contadorRotacao > 93105) {
     digitalWrite(ledVerde, LOW);
     digitalWrite(ledAmarelo, HIGH);
     digitalWrite(ledVermelho, HIGH);
-    Serial.println("Nível Médio: " + String(valorLido));
   }
   else {
     digitalWrite(ledVerde, HIGH);
     digitalWrite(ledAmarelo, HIGH);
     digitalWrite(ledVermelho, HIGH);
-    Serial.println("Nível Alto: " + String(valorLido));
   }
 }
